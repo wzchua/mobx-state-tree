@@ -68,7 +68,7 @@ const User = types.model({
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/98x2n959ky)
+[View sample in the playground](https://codesandbox.io/s/k9z73p50q5)
 
 The above code will create two models, a `Todo` and a `User` model, but as we said before, a tree model in MST consists of type information (and we just saw how to define them) and state (the instance data). So how do we create instances of the `Todo` and `User` models?
 
@@ -94,7 +94,7 @@ console.log("John:", john.toJSON())
 console.log("Eat TODO:", eat.toJSON())
 ```
 
-[View sample in the playground](https://codesandbox.io/s/6jo1o9n9qk)
+[View sample in the playground](https://codesandbox.io/s/547y18v9nk)
 
 As you will see, using models ensures that all the attributes defined will always be present and defaulted to the predefined values. If you want to change those values when creating the model instance, you can simply pass an object with the values to use into the `.create` function.
 
@@ -104,7 +104,7 @@ const eat = Todo.create({ name: "eat" })
 console.log("Eat TODO:", eat.toJSON()) // => will print {name: "eat", done: false}
 ```
 
-[View sample in the playground](https://codesandbox.io/s/ymqpj71oj9)
+[View sample in the playground](https://codesandbox.io/s/jnrnlk6yqy)
 
 ## Meeting types
 When playing with this feature and passing in values to the `.create` function, you may encounter an error like this:
@@ -131,7 +131,7 @@ const User = types.model({
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/j27j41828v)
+[View sample in the playground](https://codesandbox.io/s/ryrxmpvzjm)
 
 The `types` namespace provided in the MST package provides a lot of useful types and utility types like array, map, maybe, refinements and unions. If you are interested in them, feel free to check out the [API documentation](https://github.com/mobxjs/mobx-state-tree/blob/master/API.md) for the whole list and their parameters.
 
@@ -159,7 +159,7 @@ const store = RootStore.create({
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/5wyx1xvvj4)
+[View sample in the playground](https://codesandbox.io/s/84w035p948)
 
 Notice that the `types.optional` second argument is required as long you don't pass a value in the `.create` function of the model. If you want, for example, to make the `name` or `todos` attribute required when calling `.create`, remove the `types.optional` function call and pass the `types.*` included inside.
 
@@ -200,7 +200,7 @@ const RootStore = types.model({
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/928l6pw7pr)
+[View sample in the playground](https://codesandbox.io/s/6y7nnmvj5r)
 
 Please notice the use of `self`. `self` is the object being constructed when an instance of your model is created. Thanks to the `self` object, instance actions are "this-free", allowing you to be sure that they are correctly bound.
 
@@ -211,7 +211,7 @@ store.addTodo(1, "Eat a cake")
 store.todos.get(1).toggle()
 ```
 
-[View sample in the playground](https://codesandbox.io/s/928l6pw7pr)
+[View sample in the playground](https://codesandbox.io/s/q7monky5v9)
 
 ## Snapshots are awesome!
 Dealing with mutable data and objects makes it easy to change data on the fly, but on the other hand it makes testing hard. Immutable data makes that very easy. Is there a way to have the best of both worlds? Nature is a great example of that. Beings are living and mutable, but we may eternalize nature's beauty by taking awesome snapshots. Can we do the same with the state of our application?
@@ -270,7 +270,7 @@ applySnapshot(store, {
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/xjm99kkopp)
+[View sample in the playground](https://codesandbox.io/s/23304jl84n)
 
 ## Time travel
 The ability of getting snapshots and applying them makes implementing time travel really easy in user-land. What you need to do is listen for snapshots, store them and re-apply them to enable time travel!
@@ -310,7 +310,7 @@ MST loves MobX, and is fully compatible with it's `autorun`, `reaction`, `observ
 const App = observer(props => <div>
     <button onClick={e => props.store.addTodo(randomId(), 'New Task')}>Add Task</button>
     {values(props.store.todos).map(todo =>
-        <div>
+        <div key={todo.id}>
             <input type="checkbox" checked={todo.done} onChange={e => todo.toggle()} />
             <input type="text" value={todo.name} onChange={e => todo.setName(e.target.value)} />
         </div>
@@ -319,7 +319,9 @@ const App = observer(props => <div>
 )
 ```
 
-[View sample in the playground](https://codesandbox.io/s/4rzvkx6z77)
+[View sample in the playground](https://codesandbox.io/s/r52479w1jq)
+
+**Note**: `key` is used by [list in React](https://reactjs.org/docs/lists-and-keys.html#keys)
 
 ## Improving render performance
 If you have the React DevTools installed, enable the "Highlight Updates" check and you will see that the entire application will re-render whenever a `Todo` is toggled or a `name` is changed. That's a shame, as this can cause performance issues if there's a lot of `Todo`'s in our list!
@@ -336,12 +338,12 @@ const TodoView = observer(props =>
 const AppView = observer(props =>
     <div>
         <button onClick={e => props.store.addTodo(randomId(), 'New Task')}>Add Task</button>
-        {props.store.todos.values().map(todo => <TodoView todo={todo} />)}
+        {values(props.store.todos).map(todo => <TodoView key={todo.id} todo={todo} />)}
     </div>
 )
 ```
 
-[View sample in the playground](https://codesandbox.io/s/m3rw1wll79)
+[View sample in the playground](https://codesandbox.io/s/98l6179zw)
 
 Each `observer` declaration will enable the React component to only re-render if any of it's observed data changes. Since our `App` component was observing everything, it was re-rendering whenever you changed something.
 
@@ -356,21 +358,21 @@ const RootStore = types.model({
     todos: types.optional(types.map(Todo), {}),
 }).views(self => ({
     get pendingCount() {
-        return self.todos.values().filter(todo => !todo.done).length
+        return values(self.todos).filter(todo => !todo.done).length
     },
     get completedCount() {
-        return self.todos.values().filter(todo => todo.done).length
+        return values(self.todos).filter(todo => todo.done).length
     }
 })).actions(self => {
     function addTodo(id, name) {
-        self.todos.set(id, Todo.create({ name }))
+        self.todos.set(id, Todo.create({ id, name }))
     }
 
     return {addTodo}
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/x3qlr3xpjo)
+[View sample in the playground](https://codesandbox.io/s/j2x6n7lo63)
 
 These properties are called "computed" because they keep track of the changes to the observed attributes and recompute automatically if anything used by that attribute changes. This allows for performance savings; for example changing the `name` of a TODO won't affect the number of pending and completed count, as such it wont trigger a recalculation of those counters.
 
@@ -386,13 +388,13 @@ const TodoCounterView = observer(props =>
 const AppView = observer(props =>
         <div>
             <button onClick={e => props.store.addTodo(randomId(), 'New Task')}>Add Task</button>
-            {props.store.todos.values().map(todo => <TodoView todo={todo} />)}
+            {values(props.store.todos).map(todo => <TodoView key={todo.id} todo={todo} />)}
             <TodoCounterView store={props.store} />
         </div>
 )
 ```
 
-[View sample in the playground](https://codesandbox.io/s/x3qlr3xpjo)
+[View sample in the playground](https://codesandbox.io/s/j2x6n7lo63)
 
 If you `console.log` your snapshot you'll notice that computed properties won't appear in snapshots. That's fine and intended, since those properties must be computed over the other properties of the tree, they can be re-produced by knowing just their definition. For the same reason, if you provide a computed value in a snapshot you'll end up with an error when you attempt to apply it.
 
@@ -407,24 +409,24 @@ const RootStore = types.model({
     todos: types.optional(types.map(Todo), {})
 }).views(self => ({
     get pendingCount() {
-        return self.todos.values().filter(todo => !todo.done).length
+        return values(self.todos).filter(todo => !todo.done).length
     },
     get completedCount() {
-        return self.todos.values().filter(todo => todo.done).length
+        return values(self.todos).filter(todo => todo.done).length
     },
     getTodosWhereDoneIs(done) {
-        return self.todos.values().filter(todo => todo.done === done)
+        return values(self.todos).filter(todo => todo.done === done)
     }
 })).actions(self => {
     function addTodo(id, name) {
-        self.todos.set(id, Todo.create({ name }))
+        self.todos.set(id, Todo.create({ id, name }))
     }
 
     return {addTodo}
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/zkrkwj91p3)
+[View sample in the playground](https://codesandbox.io/s/zn93nmpvkp)
 
 Notice that the `getTodosWhereDoneIs` view can also be used outside of its model, for example it can be used inside views.
 
@@ -450,6 +452,7 @@ const store = RootStore.create({
     },
     "todos": {
         "1": {
+            "id": "1",
             "name": "Eat a cake",
             "done": true
         }
@@ -457,7 +460,7 @@ const store = RootStore.create({
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/7zqlw3ro11)
+[View sample in the playground](https://codesandbox.io/s/p3x9kmx3zq)
 
 Now we need to change our `Todo` model to store the user assigned to the TODO. You could do that by storing the `User` map `id`, and provide a computed that resolves to the user (you can do it as an exercise), but you would end up with a copious amount of code.
 
@@ -468,7 +471,7 @@ In order to make our reference work, we need to tell MST which attribute to use 
 
 The identifier attribute cannot be mutated once the model instance has been created. That also means that if you try to apply a snapshot with a different identifier on that model, it will throw an error. On the other hand, providing an identifier helps MST understand elements in maps and arrays, and allows it to correctly reuse model instances in arrays and maps when possible.
 
-To define an identifier, you will need to define a property using the `types.identifier` type composer. For example, we want the identifier to be a string.
+To define an identifier, you will need to define a property using the `types.identifier` type composer.
 
 ```javascript
 const User = types.model({
@@ -480,10 +483,10 @@ const User = types.model({
 As I said before, identifiers are required upon creation of the element and cannot be mutated, so if you end up receiving an error like this, it's because you also have to provide ids for the users in the snapshot for the `.create` of `RootStore`.
 
 ```
-Error: [mobx-state-tree] Error while converting `{"users":{"1":{"name":"mweststrate"},"2":{"name":"mattiamanzati"},"3":{"name":"johndoe"}},"todos":{"1":{"name":"Eat a cake","done":true}}}` to `AnonymousModel`:
-at path "/users/1/id" value `undefined` is not assignable to type: `identifier(string)`, expected an instance of `identifier(string)` or a snapshot like `identifier(string)` instead.
-at path "/users/2/id" value `undefined` is not assignable to type: `identifier(string)`, expected an instance of `identifier(string)` or a snapshot like `identifier(string)` instead.
-at path "/users/3/id" value `undefined` is not assignable to type: `identifier(string)`, expected an instance of `identifier(string)` or a snapshot like `identifier(string)` instead.
+[mobx-state-tree] Error while converting `{"users":{"1":{"name":"mweststrate"},"2":{"name":"mattiamanzati"},"3":{"name":"johndoe"}},"todos":{"1":{"id":"1","name":"Eat a cake","done":true}}}` to `AnonymousModel`:
+at path "/users/1/id" value `undefined` is not assignable to type: `identifier` (Value is not a valid identifier, expected a string).
+at path "/users/2/id" value `undefined` is not assignable to type: `identifier` (Value is not a valid identifier, expected a string).
+at path "/users/3/id" value `undefined` is not assignable to type: `identifier` (Value is not a valid identifier, expected a string).
 ```
 
 We can easily fix that by providing a correct snapshot.
@@ -506,6 +509,7 @@ const store = RootStore.create({
     },
     "todos": {
         "1": {
+            "id": "1",
             "name": "Eat a cake",
             "done": true
         }
@@ -513,13 +517,14 @@ const store = RootStore.create({
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/mzvx6o7r0j)
+[View sample in the playground](https://codesandbox.io/s/nk6kzl051p)
 
 ### How to define the reference
 The reference we are looking for can be easily defined as `types.reference(User)`. Sometimes this can lead to circular references that may use a model before it's declared. To postpone the resolution of the model, you can use `types.late(() => User)` instead of just `User` and that will hoist the model and defer its evaluation. The `user` assignee for the `Todo` could also be omitted, so we will use `types.maybe(...)` to allow the `user` property to be `null` and be initialized as `null`.
 
 ```javascript
 const Todo = types.model({
+    id: types.identifier,
     name: types.optional(types.string, ""),
     done: types.optional(types.boolean, false),
     user: types.maybe(types.reference(types.late(() => User)))
@@ -535,13 +540,14 @@ const Todo = types.model({
 })
 ```
 
-[View sample in the playground](https://codesandbox.io/s/mzvx6o7r0j)
+[View sample in the playground](https://codesandbox.io/s/nk6kzl051p)
 
 ### Setting a reference value
 The reference value can be set by providing either the identifier or a model instance. First of all, we need to define an action that will allow you to change the `user` of the `Todo`.
 
 ```javascript
 const Todo = types.model({
+    id: types.identifier,
     name: types.optional(types.string, ""),
     done: types.optional(types.boolean, false),
     user: types.maybe(types.reference(types.late(() => User)))
@@ -570,7 +576,7 @@ Now we need to edit our views to display a select along with each `TodoView`, wh
 const UserPickerView = observer(props =>
     <select value={props.user ? props.user.id : ""} onChange={e => props.onChange(e.target.value)}>
         <option value="">-none-</option>
-        {props.store.users.values().map(user => <option value={user.id}>{user.name}</option>)}
+        {values(props.store.users).map(user => <option key={getIndentifier(user)} value={user.id}>{user.name}</option>)}
     </select>
 )
 
@@ -591,13 +597,15 @@ const TodoCounterView = observer(props =>
 const AppView = observer(props =>
         <div>
             <button onClick={e => props.store.addTodo(randomId(), 'New Task')}>Add Task</button>
-            {props.store.todos.values().map(todo => <TodoView store={props.store} todo={todo} />)}
+            {values(props.store.todos).map(todo => <TodoView key={getIdentifier(todo)} store={props.store} todo={todo} />)}
             <TodoCounterView store={props.store} />
         </div>
 )
 ```
 
-[View sample in the playground](https://codesandbox.io/s/mzvx6o7r0j)
+[View sample in the playground](https://codesandbox.io/s/nk6kzl051p)
+
+**Note**: `getIdentifier` is used here to get the identifier value without having to know the shape of the model.
 
 ## References are safe!
 One neat feature of references, is that they will throw an error if you accidentally remove a model that is required by a computed property! If you try to remove a user that's used by a reference, you'll get something like this:
